@@ -9,8 +9,8 @@ load_dotenv()
 # Configure Streamlit page settings
 st.set_page_config(
     page_title="Neura Loop",
-    page_icon=":brain:",  # Favicon emoji
-    layout="centered",    # Page layout option
+    page_icon=":brain:",
+    layout="wide",  # Adjusted to display wide content
 )
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -19,49 +19,37 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 gen_ai.configure(api_key=GOOGLE_API_KEY)
 model = gen_ai.GenerativeModel('gemini-pro')
 
-# Function to translate roles between Gemini-Pro and Streamlit terminology
-def translate_role_for_streamlit(user_role):
-    if user_role == "model":
-        return "assistant"
-    else:
-        return user_role
-
-# Initialize chat session in Streamlit if not already present
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
-
-# Optionally render the index.html file
-def render_html_file(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    st.markdown(html_content, unsafe_allow_html=True)
-
-# Sidebar for switching between the chatbot and index.html
+# Sidebar for navigation
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Choose Mode:", ["Chatbot", "HTML Page"])
 
+# Option to display HTML page
 if app_mode == "HTML Page":
-    # Render the index.html content
-    render_html_file("index.html")
+    # Read your `index.html` file
+    def load_html_file(file_path):
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
+
+    # Load and render the HTML
+    html_content = load_html_file("index.html")
+    st.components.v1.html(html_content, height=800, scrolling=True)
+
+# Chatbot functionality
 else:
-    # Chatbot functionality
+    if "chat_session" not in st.session_state:
+        st.session_state.chat_session = model.start_chat(history=[])
+
     st.title("Ask NeuraLoop Anything...!")
 
-    # Display the chat history
+    # Display chat history
     for message in st.session_state.chat_session.history:
-        with st.chat_message(translate_role_for_streamlit(message.role)):
+        with st.chat_message("assistant" if message.role == "model" else "user"):
             st.markdown(message.parts[0].text)
 
-    # Input field for user's message
+    # User input and AI response
     user_prompt = st.chat_input("Ask NeuraLoop")
     if user_prompt:
-        # Add user's message to chat and display it
         st.chat_message("user").markdown(user_prompt)
-
-        # Send user's message to Gemini-Pro and get the response
         gemini_response = st.session_state.chat_session.send_message(user_prompt)
-
-        # Display Gemini-Pro's response
         with st.chat_message("assistant"):
             st.markdown(gemini_response.text)
-
