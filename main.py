@@ -8,9 +8,9 @@ load_dotenv()
 
 # Configure Streamlit page settings
 st.set_page_config(
-    page_title="NeuraLoop",
+    page_title="Neura Loop",
     page_icon=":brain:",
-    layout="wide",
+    layout="wide",  # Adjusted to display wide content
 )
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -19,102 +19,95 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 gen_ai.configure(api_key=GOOGLE_API_KEY)
 model = gen_ai.GenerativeModel('gemini-pro')
 
-# Apply custom CSS from index.html
-def apply_custom_css():
-    st.markdown(
-        """
-        <style>
+# Add custom 3D styling
+st.markdown(
+    """
+    <style>
+        /* Apply 3D styling to the main page */
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            font-family: 'Arial', sans-serif;
         }
 
-        .container {
-            max-width: 900px;
-            margin: auto;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-bubble {
-            padding: 15px;
-            margin: 10px 0;
+        /* Style the sidebar */
+        .css-1d391kg { /* Sidebar */
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            box-shadow: 4px 4px 8px #bfbfbf, -4px -4px 8px #ffffff;
             border-radius: 15px;
-            display: inline-block;
         }
 
-        .user-bubble {
-            background: #007bff;
-            color: #fff;
-            text-align: right;
-            float: right;
+        /* 3D button styling */
+        button {
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 4px 4px 8px #bfbfbf, -4px -4px 8px #ffffff;
+            color: #000;
+            font-size: 16px;
+            padding: 10px 20px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-3px);
         }
 
-        .bot-bubble {
-            background: #e9ecef;
-            color: #333;
-            text-align: left;
-            float: left;
+        /* 3D container styling */
+        .st-container {
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            box-shadow: 4px 4px 8px #bfbfbf, -4px -4px 8px #ffffff;
+            border-radius: 15px;
+            padding: 20px;
         }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+
+        /* 3D chat bubbles */
+        .st-chat-message {
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            border-radius: 15px;
+            box-shadow: 4px 4px 8px #bfbfbf, -4px -4px 8px #ffffff;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Style titles */
+        h1, h2, h3, h4, h5 {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-app_mode = st.sidebar.radio("Choose Mode:", ["Index Page", "NeuraLoop"])
+app_mode = st.sidebar.radio("Choose Mode:", ["Chatbot", "HTML Page"])
 
 # Option to display HTML page
-if app_mode == "Index Page":
-    st.title("Welcome to NeuraLoop!")
-    st.subheader("HTML Page View")
-    
+if app_mode == "HTML Page":
+    # Read your `index.html` file
     def load_html_file(file_path):
         with open(file_path, "r", encoding="utf-8") as file:
             return file.read()
 
+    # Load and render the HTML
     html_content = load_html_file("index.html")
     st.components.v1.html(html_content, height=800, scrolling=True)
 
 # Chatbot functionality
-elif app_mode == "NeuraLoop":
-    apply_custom_css()  # Apply custom CSS
-
-    st.title("Ask NeuraLoop Anything...!")
-    st.markdown("<div class='container'>", unsafe_allow_html=True)
-
-    # Initialize the chat session
+else:
     if "chat_session" not in st.session_state:
         st.session_state.chat_session = model.start_chat(history=[])
 
-    # Display chat history with styled bubbles
+    st.title("Ask NeuraLoop Anything...!")
+
+    # Display chat history
     for message in st.session_state.chat_session.history:
-        if message.role == "model":
-            st.markdown(
-                f"<div class='chat-bubble bot-bubble'>{message.parts[0].text}</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f"<div class='chat-bubble user-bubble'>{message.parts[0].text}</div>",
-                unsafe_allow_html=True,
-            )
+        with st.chat_message("assistant" if message.role == "model" else "user"):
+            st.markdown(message.parts[0].text)
 
     # User input and AI response
     user_prompt = st.chat_input("Ask NeuraLoop")
     if user_prompt:
-        st.markdown(
-            f"<div class='chat-bubble user-bubble'>{user_prompt}</div>",
-            unsafe_allow_html=True,
-        )
+        st.chat_message("user").markdown(user_prompt)
         gemini_response = st.session_state.chat_session.send_message(user_prompt)
-        st.markdown(
-            f"<div class='chat-bubble bot-bubble'>{gemini_response.text}</div>",
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)
+        with st.chat_message("assistant"):
+            st.markdown(gemini_response.text)
